@@ -18,9 +18,25 @@ AutoItSetOption('WinTitleMatchMode',2) ;Opt("WinTitleMatchMode", 1) ;1=start, 2=
 
 Opt('MustDeclareVars', 1)
 
+Global $Paused = true
+HotKeySet("{F5}", "Pause")
+HotKeySet("{ESC}", "Terminate")
+
+Func Pause()
+   $Paused = Not $Paused
+   If ($Paused = False) Then
+	  ConsoleWrite("Pause!!" & @CRLF)
+   Else
+	  ConsoleWrite("Continue!!" & @CRLF)
+   EndIf
+EndFunc		;==>Pause
+
+Func Terminate()
+   ConsoleWrite("Encerrando..." & @CRLF)
+   Exit
+EndFunc   ;==>Terminate
 
 TestesFrenteTouch()
-
 
 ; #FUNCTION# ======================================================================================================
 ; Name...........: TestesFrenteTouch
@@ -37,7 +53,6 @@ TestesFrenteTouch()
 ; ==================================================================================================================
 
 Func TestesFrenteTouch()
-
 	Global $sWndLoginCardapio = '[CLASS:TFRM_Login]'
 	Global $sPanelFuncionarios = '[CLASS:TJvScrollBox; INSTANCE:2]'
 	Global $sWndMensagemCardapio = '[CLASS:TFRM_Mensagem]'
@@ -57,6 +72,7 @@ Func TestesFrenteTouch()
     ; Create a label and set the state as drop accepted.
     Global $idLabel = GUICtrlCreateLabel("Arraste aqui o arquivo EXE do Frente Touch", 10, 10, 400, 40, $WS_BORDER)
     GUICtrlSetState($idLabel, $GUI_DROPACCEPTED)
+	GUICtrlSetData($idLabel,  @ScriptDir & "\FrenteTouch.exe")
 
     ; Create an input and set the state as drop accepted.
 	#GUICtrlCreateLabel("Número de vendas:", 10, 30,100)
@@ -64,21 +80,24 @@ Func TestesFrenteTouch()
     #GUICtrlSetState($idInputVendas, $GUI_DROPACCEPTED)
 
 	GUICtrlCreateLabel("Intervalo a selecionar/inserir aleatoriamente", -1, 50, 250)
-	GUICtrlCreateLabel("de itens:", -1, 20,50)
-    Global $idInputProdutos = GUICtrlCreateInput("", 50, 0, 30, 22)
+	GUICtrlCreateLabel("Lançamento Itens:", -1, 20, 250)
+	GUICtrlCreateLabel("Start:", -1, 20, 30)
+	Global $idInputProdutosStart = GUICtrlCreateInput(1, 30, -5, 30, 22)
+	GUICtrlCreateLabel("End:", 50, 5, 30)
+    Global $idInputProdutosEnd = GUICtrlCreateInput(5, 30, -5, 30, 22)
 
-	GUICtrlCreateLabel("de quantidade de produtos:", 50, 0,140)
-    Global $idQuantidadeProduto = GUICtrlCreateInput("", 135, 0, 30, 22)
+	GUICtrlCreateLabel("Qtd por item:", 80, 5, 90)
+    Global $idQuantidadeProduto = GUICtrlCreateInput(1, 65, -5, 30, 22)
 
 
-	Global $idCheckBox_Login = GUICtrlCreateCheckbox("Sem login", -235, 30)
+	Global $idCheckBox_Login = GUICtrlCreateCheckbox("Sem login", -240, 50)
+	GUICtrlSetState($idCheckBox_Login, $GUI_CHECKED)
 
 	Global $idCheckBox_Delivery = GUICtrlCreateCheckbox("Com Entrega", 110, 1)
-	Global $idCheckBox_Guardar = GUICtrlCreateCheckbox("Guardar aleatoriamente?", 100, 0,100)
-	GUICtrlSetState($idCheckBox_Guardar,$GUI_DISABLE)
+	Global $idCheckBox_Guardar = GUICtrlCreateCheckbox("Guardar aleatoriamente?", 100, 0, 100, -1, -1, $GUI_DISABLE)
 
 	GUICtrlCreateLabel("Senha:", -210, 30,50)
-	Global $idInputPassword = GUICtrlCreateInput("", 40, 0, 50, 22, BitOR($GUI_SS_DEFAULT_INPUT, $ES_PASSWORD))
+	Global $idInputPassword = GUICtrlCreateInput("", 40, -5, 50, 22, BitOR($GUI_SS_DEFAULT_INPUT, $ES_PASSWORD))
 
 
 	Global $cCheckPassword = GUICtrlCreateCheckbox("Mostrar senha", 70, 0, 150, 20)
@@ -102,7 +121,11 @@ Func TestesFrenteTouch()
 
 	Local $idButton_OK = GUICtrlCreateButton("OK", -35, 50, 85, 25)
 
-	GUICtrlCreateLabel("Teste Automatizado criado por João Trepichio - 2019", -250, 150,300)
+	GUICtrlCreateLabel("Apos LOGIN, F5 Inicia Venda", -250, 50,300)
+	GUICtrlCreateLabel("ESC Fecha Teste", -1, 20,300)
+
+	GUICtrlCreateLabel("Teste Automatizado criado por João Trepichio - 2019", -1, 80,300)
+	GUICtrlCreateLabel("Atualizado por Bruno Giacon - 2020", 200, 20,300)
 
 	Global $aArrayRadios[12] = [$idRadio_11, $idRadio_12, $idRadio_13, $idRadio_14, $idRadio_15, $idRadio_16, $idRadio_21, $idRadio_22, $idRadio_23, $idRadio_24, $idRadio_25, $idRadio_26]
 
@@ -135,6 +158,10 @@ Func TestesFrenteTouch()
 	Global $sDefaultPassChar = GUICtrlSendMsg($idInputPassword, $EM_GETPASSWORDCHAR, 0, 0)
 
 	Global $aInputs[2] = [$idInputPassword, $cCheckPassword]
+
+   _Action($aArrayRadios, "OFF")
+   _Action($aInputs, "OFF")
+   GUICtrlSetData($idInputPassword,'')
 
 	Global $iPID = 0
 	While 1
@@ -224,24 +251,26 @@ Func TestesFrenteTouch()
 			Case $idButton_OK
 
 				ConsoleWrite("idLabel: " & $idLabel & @CRLF)
-				ConsoleWrite("File dropped: " & GUICtrlRead($idLabel) & @CRLF)
-				ConsoleWrite("Directory:" & GetDir(GUICtrlRead($idLabel)) & @CRLF)
-				If (GUICtrlRead($idLabel) <> 'Arraste aqui o arquivo EXE do Frente Touch') Then
-					ConsoleWrite("Run program " & GUICtrlRead($idLabel) & @CRLF)
-					$iPID = Run(GUICtrlRead($idLabel), GetDir(GUICtrlRead($idLabel)))
-					OKButton($iRadioVal[0],$iRadioVal[1])
-				ElseIf ProcessExists("FrenteTouch.exe") Then
-					WinActivate('Frente-Touch')
-					Opt('MouseCoordMode', 2)
-					OKButton($iRadioVal[0],$iRadioVal[1])
+				ConsoleWrite("File dropped: "  & GUICtrlRead($idLabel) & @CRLF)
+				ConsoleWrite("Directory: " & GetDir(GUICtrlRead($idLabel)) & @CRLF)
+;~ 				If (GUICtrlRead($idLabel) <> 'Arraste aqui o arquivo EXE do Frente Touch') Then
+				If (ProcessExists("FrenteTouch.exe")) Then
+				   WinActivate('Frente-Touch')
+				   Opt('MouseCoordMode', 2)
+					 OKButton($iRadioVal[0],$iRadioVal[1])
 				Else
-					MsgBox($MB_OK,'ALERTA','Não há nenhuma instância do executável rodando no momento.' & @CRLF)
-					ContinueLoop
-				EndIf
+					ConsoleWrite("Run program " & GUICtrlRead($idLabel) & @CRLF)
+				  ;~ $iPID = Run(GUICtrlRead($idLabel), GetDir(GUICtrlRead($idLabel)))
+					 $iPID = Run("FrenteTouch.exe", "")
+					 OKButton($iRadioVal[0],$iRadioVal[1])
+;~ 				Else
+;~ 					MsgBox($MB_OK,'ALERTA','Não há nenhuma instância do executável rodando no momento.' & @CRLF)
+;~ 					ContinueLoop
+ 				EndIf
 
 			Case $GUI_EVENT_CLOSE
 				ExitLoop
-
+			    Terminate()
 		EndSwitch
 	WEnd
 
@@ -252,34 +281,30 @@ Func TestesFrenteTouch()
   If $iPID Then ProcessClose($iPID)
 EndFunc   ;==> TesteFrenteTouch
 
-
 Func OKButton($x,$y)
-    ; Note: At this point @GUI_CtrlId would equal $idButton_OK,
-    ; and @GUI_WinHandle would equal $hMainGUI
-
-	#With login process
-	If GUICtrlRead($idCheckBox_Login) <> $GUI_CHECKED Then
-		#And with dropped file wait for a few moments loading program before start login task
-		If (GUICtrlRead($idLabel) <> 'Arraste aqui o arquivo EXE do Frente Touch') Then Sleep(5000)
-		LoginFrenteTouch($idLabel, $x,$y)
-	Else
-		#Without login process wait for a few moments loading program before testing task giving time to user do login in case WinWaitNotActive doesn't work
-		If (GUICtrlRead($idLabel) <> 'Arraste aqui o arquivo EXE do Frente Touch') Then Sleep(7000)
-		#try to detect windows and wait for login be closed (not actived actually)
-		WinWaitNotActive($sWndLoginCardapio)
-		WinWaitNotActive($sWndMensagemCardapio)
-	EndIf
-
-
-	While 1
-		If GUICtrlRead($idCheckBox_Delivery) = $GUI_CHECKED Then
-			Local $iRandom = Random(1,5,1)
-			ConsoleWrite("random: " & $iRandom & @CRLF)
-			If ($iRandom = 2) Then TesteFrenteTouch_Entrega()
+	   ; Note: At this point @GUI_CtrlId would equal $idButton_OK,
+	   ; and @GUI_WinHandle would equal $hMainGUI
+	   #With login process
+	   If GUICtrlRead($idCheckBox_Login) <> $GUI_CHECKED Then
+		   #And with dropped file wait for a few moments loading program before start login task
+		   If (GUICtrlRead($idLabel) <> 'Arraste aqui o arquivo EXE do Frente Touch') Then Sleep(1000)
+		   LoginFrenteTouch($idLabel, $x, $y)
+	   Else
+		   #Without login process wait for a few moments loading program before testing task giving time to user do login in case WinWaitNotActive doesn't work
+		   If (GUICtrlRead($idLabel) <> 'Arraste aqui o arquivo EXE do Frente Touch') Then Sleep(1000)
+		   #try to detect windows and wait for login be closed (not actived actually)
+		   WinWaitNotActive($sWndLoginCardapio)
+		   WinWaitNotActive($sWndMensagemCardapio)
 		EndIf
-		efetuarVenda()
-	WEnd
 
+	   While 1
+		   If GUICtrlRead($idCheckBox_Delivery) = $GUI_CHECKED Then
+			   Local $iRandom = Random(1,5,1)
+			   ConsoleWrite("random: " & $iRandom & @CRLF)
+			   If ($iRandom = 2) Then TesteFrenteTouch_Entrega()
+			EndIf
+		 efetuarVenda()
+	   WEnd
 EndFunc   ;==>OKButton
 
 
@@ -751,7 +776,6 @@ EndFunc		;==>LoginFrenteTouch
 ; Example .......:
 ; ==================================================================================================================
 Func efetuarVenda()
-
 ;~ 	ConsoleWrite('Efetuar venda -> $handlePrincipal: ' & $handlePrincipal & @CRLF)
 ;~ 	If $handlePrincipal = '' Then
 ;~ 		Local $hWndPrincipal = WinWait($sWndPrincipal)
@@ -763,113 +787,119 @@ Func efetuarVenda()
 ;~ 	ConsoleWrite('State:' &  BitAND(WinGetState($hWndLoginCardapio), $WIN_STATE_VISIBLE) & @CRLF)
 
 	; Register the function closeImpressoesRemotasWnd() to be called every 250ms (default).
-    AdlibRegister("closeImpressoesRemotasWnd")
+   While (1=1)
+	  If $Paused then
+		 AdlibRegister("closeImpressoesRemotasWnd")
 
-	Local $iLoginState = WinGetState($sWndLoginCardapio)
-	If BitAND($iLoginState, 5) Then
-		ConsoleWrite("Minimized!")
-	Else
+		 Local $iLoginState = WinGetState($sWndLoginCardapio)
+		 If BitAND($iLoginState, 5) Then
+			ConsoleWrite("Minimized!")
+		 Else
 
-;~ 		$hWndLoginCardapio = WinGetHandle($sWndLoginCardapio)
-		ConsoleWrite("Estado do login: " & WinGetState($sWndLoginCardapio) & @CRLF)
-		Sleep(300)
-	EndIf
+;~ 		 $hWndLoginCardapio = WinGetHandle($sWndLoginCardapio)
+			ConsoleWrite("Estado do login: " & WinGetState($sWndLoginCardapio) & @CRLF)
+			Sleep(300)
+		 EndIf
 
-;~ 	ConsoleWrite('Efetuar venda -> $hWndLoginCardapio: ' & $hWndLoginCardapio & @CRLF)
+		 ;~ 	ConsoleWrite('Efetuar venda -> $hWndLoginCardapio: ' & $hWndLoginCardapio & @CRLF)
 
-;~ 	If WinExists($sWndMensagemCardapio) Then
-;~ 		$hWndMensagemCardapio = WinGetHandle($sWndMensagemCardapio)
-;~ 		WinWaitClose($sWndMensagemCardapio)
-;~ 		Sleep(300)
-;~ 	EndIf
+		 ;~ 	If WinExists($sWndMensagemCardapio) Then
+		 ;~ 		$hWndMensagemCardapio = WinGetHandle($sWndMensagemCardapio)
+		 ;~ 		WinWaitClose($sWndMensagemCardapio)
+		 ;~ 		Sleep(300)
+		 ;~ 	EndIf
 
-;~ 	ConsoleWrite('Efetuar venda -> $hWndMensagemCardapio: ' & $hWndMensagemCardapio & @CRLF)
+		 ;~ 	ConsoleWrite('Efetuar venda -> $hWndMensagemCardapio: ' & $hWndMensagemCardapio & @CRLF)
 
-;~ 	Sleep(1500)
+		 ;~ 	Sleep(1500)
 
 
-	ConsoleWrite('Efetuar venda')
-	Local $nCoordGrupoX = 43
-	Local $nCoordGrupoY = 60
-	#increments of 40 or 38 to hit buttons below
+		 ConsoleWrite('Efetuar venda')
+		 Local $nCoordGrupoX = 43
+		 Local $nCoordGrupoY = 60
+		 #increments of 40 or 38 to hit buttons below
 
-	Local $iInstance = 0
-	Local $hControl = ''
-	Local $nProdutos = GUICtrlRead($idInputProdutos)
-	Local $nQuantidadeProduto = GUICtrlRead($idQuantidadeProduto)
+		 Local $iInstance = 0
+		 Local $hControl = ''
+		 Local $nProdutosStart = GUICtrlRead($idInputProdutosStart)
+		 Local $nProdutosEnd = GUICtrlRead($idInputProdutosEnd)
+		 Local $nQuantidadeProduto = GUICtrlRead($idQuantidadeProduto)
 
-	If $nProdutos = '' Then $nProdutos = 5
-	If $nQuantidadeProduto = '' Then $nQuantidadeProduto = 1
+		 If $nProdutosStart = '' Then $nProdutosStart = 1
+		 If $nProdutosEnd = '' Then $nProdutosEnd = 5
+		 If $nQuantidadeProduto = '' Then $nQuantidadeProduto = 1
 
-	; Random number of products to select
-	Local $iRandomProducts = Random(1,$nProdutos, 1)
-	ConsoleWrite("nProdutos a selecionar: " & $iRandomProducts & @CRLF)
+		 ; Random number of products to select
+		 Local $iRandomProducts = Random($nProdutosStart, $nProdutosEnd, 1)
+		 ConsoleWrite("nProdutos a selecionar: " & $iRandomProducts & @CRLF)
 
-;TODO: Do not repeat a selected item
-;~ 	; Return $nProdutos unique numbers from 8 to 49
-;~ 	Local $aRandomProducts[$iRandomProducts]
-;~
-;~ 	_RandomUnique($iRandomProducts, 8, 49, 1)
-;~ 	For $iInstance In $aRandomProducts
-;~ 		$hControl = ControlGetHandle($handlePrincipal,'', '[CLASS:TPanel; INSTANCE:'&$iInstance&']')
-;~ 		If Not IsHWnd ( $hControl ) Then
-;~ 			_ArrayDelete ( ByRef $aRandomProducts, $iInstance )
-;~ 			ConsoleWrite("deleted. New array: " & $aRandomProducts & @CRLF)
-;~ 			_ArrayAdd( ByRef $aRandomProducts, Random(
-;~ 		EndIf
-;~ 	Next
-;~
-;~ 	While $iRandomProducts >=  UBound($aRandomProducts, $UBOUND_ROWS)
-;~
-;~ 	WEnd
+		 ;TODO: Do not repeat a selected item
+		 ;~ 	; Return $nProdutos unique numbers from 8 to 49
+		 ;~ 	Local $aRandomProducts[$iRandomProducts]
+		 ;~
+		 ;~ 	_RandomUnique($iRandomProducts, 8, 49, 1)
+		 ;~ 	For $iInstance In $aRandomProducts
+		 ;~ 		$hControl = ControlGetHandle($handlePrincipal,'', '[CLASS:TPanel; INSTANCE:'&$iInstance&']')
+		 ;~ 		If Not IsHWnd ( $hControl ) Then
+		 ;~ 			_ArrayDelete ( ByRef $aRandomProducts, $iInstance )
+		 ;~ 			ConsoleWrite("deleted. New array: " & $aRandomProducts & @CRLF)
+		 ;~ 			_ArrayAdd( ByRef $aRandomProducts, Random(
+		 ;~ 		EndIf
+		 ;~ 	Next
+		 ;~
+		 ;~ 	While $iRandomProducts >=  UBound($aRandomProducts, $UBOUND_ROWS)
+		 ;~
+		 ;~ 	WEnd
 
-	For $i = $iRandomProducts To 1 Step -1
-	 If (Random(0,1,1)) Then
+		 For $i = $iRandomProducts To 1 Step -1
+		 If (Random(0,1,1)) Then
 		 #choose a different product group
 		 ControlClick($handlePrincipal,'', '[CLASS:TJvScrollBox; INSTANCE:1]', 'primary',1,$nCoordGrupoX, $nCoordGrupoY + Random(1,4,1)*38)
 		 Sleep(300)
-	 EndIf
+		 EndIf
 
-	 #choose a product
-	 #ControlClick($handlePrincipal,'', '[CLASS:TPanel; INSTANCE:'&Random(8,37,1)&']', 'primary',1)
-	 Local $sButtonAddQuantity = '[CLASS:TPanel; INSTANCE:7]'
+		 #choose a product
+		 #ControlClick($handlePrincipal,'', '[CLASS:TPanel; INSTANCE:'&Random(8,37,1)&']', 'primary',1)
+		 Local $sButtonAddQuantity = '[CLASS:TPanel; INSTANCE:7]'
 
-	 While 1
-		#Input quantity of products
-		ControlClick($handlePrincipal,'',$sButtonAddQuantity, 'primary', Random(0,$nQuantidadeProduto - 1,1), 392, 28)
+		 While 1
+		 #Input quantity of products
+		 ControlClick($handlePrincipal,'',$sButtonAddQuantity, 'primary', Random(0,$nQuantidadeProduto - 1,1), 392, 28)
 
 
-		$iInstance = Random(8,49,1)
-		$hControl = ControlGetHandle($handlePrincipal,'', '[CLASS:TPanel; INSTANCE:'&$iInstance&']')
-		If IsHWnd ( $hControl ) Then
+		 $iInstance = Random(8,49,1)
+		 $hControl = ControlGetHandle($handlePrincipal,'', '[CLASS:TPanel; INSTANCE:'&$iInstance&']')
+		 If IsHWnd ( $hControl ) Then
 			ControlClick($handlePrincipal,'', '[CLASS:TPanel; INSTANCE:'&$iInstance&']', 'primary',1)
 			ExitLoop
-		EndIf
+		 EndIf
 
-	 WEnd
-	 Sleep(800)
+		 WEnd
+		 Sleep(800)
 
-	Next
+		 Next
 
 
-	If GUICtrlRead($idCheckBox_Delivery) = $GUI_CHECKED Then
-		Local $iRandom = Random(0,5,1)
-		If GUICtrlRead($idCheckBox_Guardar) = $GUI_CHECKED And ($iRandom = 3) Then
+		 If GUICtrlRead($idCheckBox_Delivery) = $GUI_CHECKED Then
+		 Local $iRandom = Random(0,5,1)
+		 If GUICtrlRead($idCheckBox_Guardar) = $GUI_CHECKED And ($iRandom = 3) Then
 			Send('{ALTDOWN}g{ALTUP}')
 			Sleep(500)
-		Else
+		 Else
 			FinalizarVenda()
 			Sleep(1000)
-		EndIf
-	Else
+		 EndIf
+		 Else
 
-		FinalizarVenda()
-		Sleep(1000)
-	EndIf
+		 FinalizarVenda()
+		 Sleep(1000)
+		 EndIf
 
 
-	; Unregister the function closeImpressoesRemotasWnd() from being called every 250ms.
-    AdlibUnRegister("closeImpressoesRemotasWnd")
+		 ; Unregister the function closeImpressoesRemotasWnd() from being called every 250ms.
+		 AdlibUnRegister("closeImpressoesRemotasWnd")
+		 EndIf
+	   WEnd
 
 EndFunc ;==>efetuarVenda
 
@@ -897,11 +927,11 @@ Func FinalizarVenda ($hWnd = 0)
 
 	#Cut code begin
 	Send('{ALTDOWN}z{ALTUP}')
-	Sleep(2000)
+	Sleep(500)
 
 	ConsoleWrite("Wait for CNPJ" & @CRLF)
 	#CNPJ Window only appears when SAT is running
-	WinWait($sWndCNPJ, '', 3)
+	WinWait($sWndCNPJ, '', 1)
 
 	If WinExists($sWndCNPJ) Then
 		Send('{ALTDOWN}n{ALTUP}')
@@ -914,8 +944,10 @@ Func FinalizarVenda ($hWnd = 0)
 	Local $nCoordPgtoY = 70
 	#increments of 70 to hit buttons below (DINHEIRO=288)
 
+    WinWait($sWndFinalizar, '', 1)
 	ConsoleWrite("Check if there already is a handle for Window Finalizar Venda" & @CRLF)
 	Local $sPanelGrupos = '[CLASS:TJvScrollBox; INSTANCE:1]'
+
 	If WinExists($hWnd) = 0 Then
 		Local $hWndFinalizar = WinWait($sWndFinalizar)
 		Local $handleFinalizar = WinGetHandle($hWndFinalizar)
@@ -928,7 +960,7 @@ Func FinalizarVenda ($hWnd = 0)
 
 	ConsoleWrite("Choose a random payment method" & @CRLF)
 	ControlClick($handleFinalizar,'', $sPanelPagamentos, 'primary',1,$nCoordPgtoX,$nCoordPgtoY + Random(1,4,1)*70)
-	Sleep(1000)
+	Sleep(500)
 
 	Local $sMsgMensalista = 'Não é permitido Forma de Pagamento Mensalista para cliente NÃO MENSALISTA.'
 	Local $sMsgEscolhaCliente = 'Esta Condição de Pagamento requer a escolha de um Cliente!'
@@ -943,12 +975,15 @@ Func FinalizarVenda ($hWnd = 0)
 		ConsoleWrite("No disturbing window. Let's finish the sale process." & @CRLF)
 		$iPaymentOK = 0
 	EndIf
-	WEnd
+ WEnd
 
+    Local $sWndpagto = '[CLASS:TFRM_DigitaValorFormas]'
+    WinWait($sWndpagto, '', 1)
 	Send('{ALTDOWN}o{ALTUP}')
 	Sleep(800)
 	Send('{ALTDOWN}f{ALTUP}')
-	Sleep(2500)
+
+	WinWaitClose($sWndFinalizar, '', 1)
 
 	; Unregister the function closeImpressoesRemotasWnd() from being called every 250ms.
     AdlibUnRegister("closeImpressoesRemotasWnd")
